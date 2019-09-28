@@ -1,4 +1,22 @@
 /* Create by ruanmingcong on   */
+
+/**
+ * 获取当前浏览器的语言，区域
+ * <br/>并且设置到 localStorage中 lang
+ * @returns {string} eg：zh-CN
+ */
+function getCurrentLanguage() {
+    let type = navigator.appName, lang;
+    if (type === "Netscape") {
+        lang = navigator.language;
+    } else {
+        lang = navigator.userLanguage;
+    }
+    window.localStorage.setItem("lang", lang);
+    return lang;
+}
+
+
 //初始化全局变量
 !function () {
     var BASE_URL, isTest = false, homePageUrl = '/static/index.html';
@@ -182,18 +200,6 @@ function getQueryString(name) {
     var r = window.location.search.substr(1).match(reg);//search,查询？后面的参数，并匹配正则
     if (r != null) return decodeURI(r[2]);
     return null;
-}
-
-function getCurrentLanguage() {
-    var type = navigator.appName;
-    if (type == "Netscape") {
-        var lang = navigator.language;//获取浏览器配置语言，支持非IE浏览器
-    } else {
-        var lang = navigator.userLanguage;//获取浏览器配置语言，支持IE5+ == navigator.systemLanguage
-    }
-    var lang = lang.substr(0, 2);//获取浏览器配置语言前两位
-    window.localStorage.setItem("lan", lang);
-    return lang;
 }
 
 
