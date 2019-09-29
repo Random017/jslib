@@ -16,40 +16,84 @@ function getCurrentLanguage() {
     return lang;
 }
 
+const colorArray = ['#141614', '#E8BF6A', '#1677DD', '#E81B0E', '#075bba', '#E88D2F', '#5BE817', '#C370E8',];
 
-//初始化全局变量
-!function () {
-    var BASE_URL, isTest = false, homePageUrl = '/static/index.html';
-    var geduo = window.parent.location.href.toLowerCase();
-    var f = new Array();
-    f = geduo.split("/");
-    var ztwww = f[2];
-    // console.log("当前运行环境：", ztwww);
-    if (ztwww.indexOf("www.skycong.com:9999") >= 0) {
-        BASE_URL = "https://www.skycong.com:9999";
-    } else if (ztwww.indexOf("benteng.skycong.com") >= 0) {
-        BASE_URL = "http://benteng.skycong.com:10020";
-    } else {
-        BASE_URL = "http://127.0.0.1:10020";
-        isTest = true;
-        homePageUrl = "index.html";
+/**
+ * 通过字符串hash获取颜色
+ * @param str
+ * @returns {string} 颜色eg：#1677DD
+ */
+function getColorByStringHash(str) {
+    let index;
+    index = (Math.abs(stringHashCode(str))) % (colorArray.length);
+    return colorArray[index];
+}
+
+
+/**
+ * 计算字符串hash
+ * @param str
+ * @returns {number}
+ */
+function stringHashCode(str) {
+    let hash = 0;
+    if (str != null && str.length > 0) {
+        for (let i = 0; i < str.length; i++) {
+            let char = str.charCodeAt(i);
+            hash = 31 * hash + char;
+            hash = hash & hash;
+        }
     }
-    var lang = getCurrentLanguage();
-    // console.log("pre BASE_URL：", BASE_URL);
-    // console.log("pre isTest：", isTest);
-    // console.log("pre language：", lang);
-    window.localStorage.setItem("BASE_URL", BASE_URL);
-    window.localStorage.setItem("isTest", isTest);
-    window.localStorage.setItem("language", lang);
-    window.localStorage.setItem("homePageUrl", homePageUrl);
-}(window);
+    return hash;
+}
 
-var
-    BASE_URL = window.localStorage.getItem("BASE_URL"),
-    // isTest = window.localStorage.getItem("isTest"),
-    isTest = false,
-    language = window.localStorage.getItem("language"),
-    colorArray = ['#141614', '#E8BF6A', '#1677DD', '#E81B0E', '#075bba', '#E88D2F', '#5BE817', '#C370E8',];
+/**
+ * 字符串加密，
+ * @param str 源字符串
+ * @param count 加密次数 默认1次
+ * @returns {*} 密文
+ */
+function stringEncrypted(str, count) {
+    let r = str;
+    count = count || 1;
+    for (let i = 0; i < count; i++) {
+        r = window.btoa(r);
+    }
+    return r;
+}
+
+
+/**
+ * 分组
+ * @param arr 源数组
+ * @param condition 分组key条件
+ */
+function groupBy(arr, condition) {
+    let res = {};
+    if (arr != null) {
+        for (let i = 0; i < arr.length; i++) {
+            let key = condition(arr[i]);
+            if (res[key] == null) {
+                res[key] = [];
+            }
+            res[key].push(arr[i]);
+        }
+    }
+    return res;
+}
+
+
+/**
+ * 获取请求url中的指定名称参数
+ * @param name
+ * @returns {*}
+ */
+function getQueryString(name) {
+    let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+    let r = window.location.search.substr(1).match(reg);
+    if (r != null) return decodeURI(r[2]);
+    return null;
+}
 
 
 /**
@@ -83,48 +127,38 @@ function httpGetSync(url, param, done) {
     httpRequest('get', url, param, false, done);
 }
 
+
 /**
  * http 请求
- * @param method
- * @param url
- * @param param
- * @param done
+ * @param method 请求方法get post
+ * @param url  请求url
+ * @param param 请求参数对象 object
+ * @param done  回调函数
  */
 function httpRequest(method, url, param, async, done) {
-    if (isTest) {
-        console.log("---------------------" + new Date().getTime() + "-------------------------------------------------------------");
-        console.log("----->请求URL: " + url);
-        console.log("----->请求参数: ");
-        console.log(param);
-    }
-    var xhr = new XMLHttpRequest();
-    if (method == 'get' && param != null) {
-        var s = object2QueryString(param);
+    let xhr = new XMLHttpRequest();
+    if (method === 'get' && param != null) {
+        let s = object2QueryString(param);
         if (s.length > 0) {
             url = url + "?" + object2QueryString(param);
         }
     }
     if (url)
         xhr.open(method, url, async);
-    if (method == 'post') {
+    if (method === 'post') {
         xhr.setRequestHeader("Content-type", "application/json;charset=utf-8");
     }
     xhr.setRequestHeader("AccessToken", window.localStorage.getItem("token"));
     xhr.withCredentials = true;
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4) {
-            var res = JSON.parse(xhr.responseText);
-            if (isTest) {
-                console.log("----->响应结果: ");
-                console.log(res);
-                console.log("-----------------------------------------------------------------------------------------------");
-            }
+        if (xhr.readyState === 4) {
+            let res = JSON.parse(xhr.responseText);
             if (interceptor(res)) {
                 done(res);
             }
         }
     };
-    if (method == 'post') {
+    if (method === 'post') {
         xhr.send(JSON.stringify(param));
     } else {
         xhr.send();
@@ -140,7 +174,7 @@ function httpRequest(method, url, param, async, done) {
 function interceptor(res) {
 //    do something
 //     console.log("进入拦截器---------")
-    if (res.code == 7) {
+    if (res.code === 7) {
         window.location.href = "/";
         return false;
     }
@@ -154,8 +188,8 @@ function interceptor(res) {
  * @returns {string}  key=value&k2=v2
  */
 function object2QueryString(obj) {
-    var queryStr = "";
-    for (var f in obj) {
+    let queryStr = "";
+    for (let f in obj) {
         queryStr += f + "=" + obj[f] + "&";
     }
     return queryStr.slice(0, queryStr.length - 1);
@@ -168,17 +202,14 @@ function object2QueryString(obj) {
  */
 function xor(text) {
     if (!text) return "";
-    var n = "";
-    for (var i = 0; i < text.length; i++)
+    let n = "";
+    for (let i = 0; i < text.length; i++)
         n += String.fromCharCode(text[i].charCodeAt() ^ 17);
     return n;
 }
 
 
-function log(msg) {
-    if (isTest)
-        console.log(msg)
-}
+//常用正则
 
 function isPhone(phone) {
     return /^1\d{10}$/.test(phone);
@@ -189,43 +220,36 @@ function isEmail(email) {
 }
 
 
-/**
- * 获取请求url中的指定名称参数
- * @param name
- * @returns {*}
- */
-function getQueryString(name) {
-
-    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
-    var r = window.location.search.substr(1).match(reg);//search,查询？后面的参数，并匹配正则
-    if (r != null) return decodeURI(r[2]);
-    return null;
-}
+/*
+*
+* 数据结构
+*
+* */
 
 
 function Map() {
-    var slet = this;
-    var m = {};
+    let self = this;
+    let m = {};
     // 添加
-    slet.put = function (key, value) {
+    self.put = function (key, value) {
         m[key] = value;
     };
 
     //获取
-    slet.get = function (key) {
+    self.get = function (key) {
         return m[key];
     };
 
     //删除
-    slet.remove = function (key) {
+    self.remove = function (key) {
         if (m[key]) {
             delete m[key];
         }
     };
 
     // 是否存在
-    slet.has = function (key) {
-        for (k in m) {
+    self.has = function (key) {
+        for (let k in m) {
             if (k === key) {
                 return true;
             }
@@ -234,18 +258,18 @@ function Map() {
     };
 
     //返回size
-    slet.size = function () {
-        var size = 0;
-        for (key in m) {
+    self.size = function () {
+        let size = 0;
+        for (let key in m) {
             size++
         }
         return size;
     };
 
     // 获取所有key
-    slet.keys = function () {
-        var arr = [];
-        for (key in m) {
+    self.keys = function () {
+        let arr = [];
+        for (let key in m) {
             arr.push(key)
         }
         return arr;
@@ -253,54 +277,21 @@ function Map() {
 
     //获取所有 value
     self.values = function () {
-        var arr = [];
-        for (key in m) {
+        let arr = [];
+        for (let key in m) {
             arr.push(m[key])
         }
         return arr;
     };
 
     //遍历
-    slet.forEach = function (call) {
-        for (key in m) {
+    self.forEach = function (call) {
+        for (let key in m) {
             call(key, m[key])
         }
     };
 
-    slet.toJson = function () {
+    self.toJson = function () {
         return JSON.stringify(m);
     }
 }
-
-
-/**
- * 通过字符串hash获取颜色
- * @param string
- * @returns {string}
- */
-function getColorByHash(string) {
-    var index = 0;
-    index = (Math.abs(stringHashCode(string))) % (colorArray.length);
-    return colorArray[index];
-}
-
-/**
- * 计算字符串hash
- * @param str
- * @returns {number}
- */
-function stringHashCode(str) {
-    var hash = 0;
-    if (str != null && str.length > 0) {
-        for (let i = 0; i < str.length; i++) {
-            let char = str.charCodeAt(i);
-            hash = 31 * hash + char;
-            hash = hash & hash;
-        }
-    }
-    return hash;
-}
-
-
-
-
