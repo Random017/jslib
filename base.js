@@ -295,3 +295,23 @@ function Map() {
         return JSON.stringify(m);
     }
 }
+
+
+/**
+ * 格式化时间戳
+ * @param time 毫秒值
+ */
+function timeFormat(time) {
+    let date = new Date(time);
+    let y = date.getFullYear();
+    let m = date.getMonth() + 1;
+    let d = date.getDate();
+    let h = date.getHours();
+    let mm = date.getMinutes();
+    let s = date.getSeconds();
+    return y + "-" + padding(m) + "-" + padding(d) + " " + padding(h) + ":" + padding(mm) + ":" + padding(s);
+}
+
+function padding(i) {
+    return i < 10 ? '0' + i : i;
+}
